@@ -6,10 +6,12 @@ package provider
 import (
 	"context"
 	"net/http"
+	"os"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/ephemeral"
 	"github.com/hashicorp/terraform-plugin-framework/function"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -31,7 +33,10 @@ type ScaffoldingProvider struct {
 
 // ScaffoldingProviderModel describes the provider data model.
 type ScaffoldingProviderModel struct {
-	Endpoint types.String `tfsdk:"endpoint"`
+	URL               types.String `tfsdk:"url"`
+	Insecure          types.Bool   `tfsdk:"insecure"`
+	APIClientUsername types.String `tfsdk:"api_client_username"`
+	APIClientToken    types.String `tfsdk:"api_client_token"`
 }
 
 func (p *ScaffoldingProvider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
@@ -64,18 +69,105 @@ func (p *ScaffoldingProvider) Schema(ctx context.Context, req provider.SchemaReq
 }
 
 func (p *ScaffoldingProvider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
-	var data ScaffoldingProviderModel
+	var config ScaffoldingProviderModel
 
-	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
 
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	// Configuration values are now available.
-	// if data.Endpoint.IsNull() { /* ... */ }
+	// Validate configuration data.
+	if config.URL.IsUnknown() {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("url"),
+			"Unknown PFSenseV2 URL",
+			"The provider cannot create the API client as there is no URL provided. "+
+				"Either target apply the source of the value first, set the value statically "+
+				"in the configuration, or use the PFSENSEV2_URL environment variable.",
+		)
+	}
+	if config.APIClientUsername.IsUnknown() {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("api_client_username"),
+			"Unknown PFSenseV2 API Client Username",
+			"The provider cannot create the API client as there is no API client username provided. "+
+				"Either target apply the source of the value first, set the value statically "+
+				"in the configuration, or use the PFSENSEV2_API_USERNAME environment variable.",
+		)
+	}
+	if config.APIClientToken.IsUnknown() {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("api_client_token"),
+			"Unknown PFSenseV2 API Client Token",
+			"The provider cannot create the API client as there is no API client token provided. "+
+				"Either target apply the source of the value first, set the value statically "+
+				"in the configuration, or use the PFSENSEV2_API_TOKEN environment variable.",
+		)
+	}
+	if config.Insecure.IsUnknown() {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("insecure"),
+			"Unknown PFSenseV2 Insecure Flag",
+			"The provider cannot create the API client as there is an unknown Insecure flag provided. "+
+				"Please check the configuration value or use the PFSENSEV2_INSECURE environment variable.",
+		)
+	}
 
-	// Example client configuration for data sources and resources
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Use env variables if provided
+	url := os.Getenv("PFSENSEV2_URL")
+	username := os.Getenv("PFSENSEV2_API_USERNAME")
+	token := os.Getenv("PFSENSEV2_API_TOKEN")
+	insecure := false
+
+	if !config.URL.IsNull() {
+		url = config.URL.ValueString()
+	}
+	if !config.APIClientUsername.IsNull() {
+		username = config.APIClientUsername.ValueString()
+	}
+	if !config.APIClientToken.IsNull() {
+		token = config.APIClientToken.ValueString()
+	}
+	if len(os.Getenv("PFSENSEV2_INSECURE")) > 0 {
+		insecure = true
+	}
+
+	if url == "" {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("url"),
+			"Missing PFSenseV2 URL",
+			"The provider cannot create the API client as there is no URL provided. "+
+				"Set the URL in the configuration or use the PFSENSEV2_URL environment variable.",
+		)
+	}
+	if username == "" {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("api_client_username"),
+			"Missing PFSenseV2 API Client Username",
+			"The provider cannot create the API client as there is no API client username provided. "+
+				"Set the API client username in the configuration or use the PFSENSEV2_API_USERNAME environment variable.",
+		)
+	}
+	if token == "" {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("api_client_token"),
+			"Missing PFSenseV2 API Client Token",
+			"The provider cannot create the API client as there is no API client token provided. "+
+				"Set the API client token in the configuration or use the PFSENSEV2_API_TOKEN environment variable.",
+		)
+	}
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// We now have a valid configuration!
+
 	client := http.DefaultClient
 	resp.DataSourceData = client
 	resp.ResourceData = client
