@@ -35,16 +35,29 @@ type ScaffoldingProviderModel struct {
 }
 
 func (p *ScaffoldingProvider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
-	resp.TypeName = "scaffolding"
+	resp.TypeName = "pfsense-v2"
 	resp.Version = p.version
 }
 
 func (p *ScaffoldingProvider) Schema(ctx context.Context, req provider.SchemaRequest, resp *provider.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
-			"endpoint": schema.StringAttribute{
-				MarkdownDescription: "Example provider attribute",
+			"url": schema.StringAttribute{
+				MarkdownDescription: "The URL of the target pfSense device (e.g. https://192.168.1.1)",
 				Optional:            true,
+			},
+			"insecure": schema.BoolAttribute{
+				MarkdownDescription: "Allow insecure server connections when using SSL",
+				Optional:            true,
+			},
+			"api_client_username": schema.StringAttribute{
+				MarkdownDescription: "API client identifier for authentication (i.e. username)",
+				Required:            true,
+			},
+			"api_client_token": schema.StringAttribute{
+				MarkdownDescription: "API client token for authentication",
+				Required:            true,
+				Sensitive:           true,
 			},
 		},
 	}
