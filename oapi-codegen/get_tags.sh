@@ -1,7 +1,4 @@
 #!/usr/bin/env bash
-# Copyright (c) HashiCorp, Inc.
-# SPDX-License-Identifier: MPL-2.0
-
 
 function get_for_tag() {
     jq '
@@ -11,6 +8,11 @@ function get_for_tag() {
             )) | length > 0
         )) | keys
     ' $(dirname $0)/openapi.json
+}
+
+function get_operation_ids_for_path() {
+    jq '.paths["'$1'"] | to_entries | map(.value.operationId)' \
+        $(dirname $0)/openapi.json
 }
 
 if [[ -z "$1" ]]; then

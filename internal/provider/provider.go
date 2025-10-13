@@ -5,8 +5,8 @@ package provider
 
 import (
 	"context"
-	"net/http"
 	"os"
+	pfsense_rest_v2 "terraform-provider-pfsense-v2/internal/api"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/ephemeral"
@@ -167,8 +167,15 @@ func (p *ScaffoldingProvider) Configure(ctx context.Context, req provider.Config
 	}
 
 	// We now have a valid configuration!
-
-	client := http.DefaultClient
+	client, error := pfsense_rest_v2.NewTerraformClient(url, username, token, insecure)
+	if error != nil {
+		resp.Diagnostics.AddError(
+			"Unable to Create PFSenseV2 API Client",
+			"An unexpected error occurred when creating the PFSenseV2 API client. "+
+				error.Error(),
+		)
+		return
+	}
 	resp.DataSourceData = client
 	resp.ResourceData = client
 }
