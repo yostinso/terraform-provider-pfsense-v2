@@ -1,0 +1,15 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
+# yaml-language-server: $schema=https://raw.githubusercontent.com/oapi-codegen/oapi-codegen/HEAD/configuration-schema.json
+package: pfsense_rest_v2
+output: ../internal/api/pfsense_rest_v2.gen.go
+generate:
+  models: true
+  client: true
+output-options:
+  include-tags:
+    - AUTH
+    - FIREWALL
+    - INTERFACE
+    - SYSTEM
