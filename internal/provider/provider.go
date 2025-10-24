@@ -6,6 +6,7 @@ package provider
 import (
 	"context"
 	"os"
+	"strings"
 	pfsense_rest_v2 "terraform-provider-pfsense-v2/internal/api"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
@@ -36,6 +37,7 @@ type ScaffoldingProviderModel struct {
 	URL               types.String `tfsdk:"url"`
 	Insecure          types.Bool   `tfsdk:"insecure"`
 	APIClientUsername types.String `tfsdk:"api_client_username"`
+	APIClientPassword types.String `tfsdk:"api_client_password"`
 	APIClientToken    types.String `tfsdk:"api_client_token"`
 }
 
@@ -57,117 +59,124 @@ func (p *ScaffoldingProvider) Schema(ctx context.Context, req provider.SchemaReq
 			},
 			"api_client_username": schema.StringAttribute{
 				MarkdownDescription: "API client identifier for authentication (i.e. username)",
-				Required:            true,
+				Optional:            true,
+			},
+			"api_client_password": schema.StringAttribute{
+				MarkdownDescription: "API client token for authentication",
+				Optional:            true,
+				Sensitive:           true,
 			},
 			"api_client_token": schema.StringAttribute{
 				MarkdownDescription: "API client token for authentication",
-				Required:            true,
+				Optional:            true,
 				Sensitive:           true,
 			},
 		},
 	}
 }
 
-func (p *ScaffoldingProvider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
-	var config ScaffoldingProviderModel
+func ConfiguredURL(config *ScaffoldingProviderModel, resp *provider.ConfigureResponse) string {
+	// URL from config, can be overridden by env
+	const title = "Unknown PFSenseV2 URL"
+	const detail = "The provider cannot create the API client as the URL has an Unknown value. " +
+		"Either target apply the source of the value first, set the value statically " +
+		"in the configuration, or use the PFSENSEV2_URL environment variable."
 
-	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
-
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	// Validate configuration data.
 	if config.URL.IsUnknown() {
-		resp.Diagnostics.AddAttributeError(
-			path.Root("url"),
-			"Unknown PFSenseV2 URL",
-			"The provider cannot create the API client as there is no URL provided. "+
-				"Either target apply the source of the value first, set the value statically "+
-				"in the configuration, or use the PFSENSEV2_URL environment variable.",
-		)
-	}
-	if config.APIClientUsername.IsUnknown() {
-		resp.Diagnostics.AddAttributeError(
-			path.Root("api_client_username"),
-			"Unknown PFSenseV2 API Client Username",
-			"The provider cannot create the API client as there is no API client username provided. "+
-				"Either target apply the source of the value first, set the value statically "+
-				"in the configuration, or use the PFSENSEV2_API_USERNAME environment variable.",
-		)
-	}
-	if config.APIClientToken.IsUnknown() {
-		resp.Diagnostics.AddAttributeError(
-			path.Root("api_client_token"),
-			"Unknown PFSenseV2 API Client Token",
-			"The provider cannot create the API client as there is no API client token provided. "+
-				"Either target apply the source of the value first, set the value statically "+
-				"in the configuration, or use the PFSENSEV2_API_TOKEN environment variable.",
-		)
-	}
-	if config.Insecure.IsUnknown() {
-		resp.Diagnostics.AddAttributeError(
-			path.Root("insecure"),
-			"Unknown PFSenseV2 Insecure Flag",
-			"The provider cannot create the API client as there is an unknown Insecure flag provided. "+
-				"Please check the configuration value or use the PFSENSEV2_INSECURE environment variable.",
-		)
+		resp.Diagnostics.AddAttributeError(path.Root("url"), title, detail)
 	}
 
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	// Use env variables if provided
 	url := os.Getenv("PFSENSEV2_URL")
-	username := os.Getenv("PFSENSEV2_API_USERNAME")
-	token := os.Getenv("PFSENSEV2_API_TOKEN")
-	insecure := false
-
 	if !config.URL.IsNull() {
 		url = config.URL.ValueString()
 	}
+	if url == "" {
+		resp.Diagnostics.AddAttributeError(path.Root("url"), title, detail)
+	}
+	return url
+}
+func ConfiguredAuth(config *ScaffoldingProviderModel, resp *provider.ConfigureResponse) pfsense_rest_v2.Authorization {
+	const title = "No valid PFSenseV2 authentication configured"
+	const detail = "One of api_client_username/api_client_password or api_client_token must be set in the provider " +
+		"configuration (either with target apply or statically inthe config) or via environment variables " +
+		"PFSENSEV2_API_USERNAME, PFSENSEV2_API_PASSWORD, PFSENSE_API_TOKEN."
+
+	if config.APIClientUsername.IsUnknown() && config.APIClientPassword.IsUnknown() && config.APIClientToken.IsUnknown() {
+		resp.Diagnostics.AddError(title, detail)
+		return nil
+	}
+
+	username := os.Getenv("PFSENSEV2_API_USERNAME")
+	password := os.Getenv("PFSENSEV2_API_PASSWORD")
+	token := os.Getenv("PFSENSEV2_API_TOKEN")
 	if !config.APIClientUsername.IsNull() {
 		username = config.APIClientUsername.ValueString()
+	}
+	if !config.APIClientPassword.IsNull() {
+		password = config.APIClientPassword.ValueString()
 	}
 	if !config.APIClientToken.IsNull() {
 		token = config.APIClientToken.ValueString()
 	}
-	if len(os.Getenv("PFSENSEV2_INSECURE")) > 0 {
+	if username != "" && password != "" && token == "" {
+		resp.Diagnostics.AddError(title, "Only one of api_client_username/api_client_password or api_client_token can be set for authentication.")
+		return nil
+	}
+	if username != "" && password != "" {
+		return &pfsense_rest_v2.BasicAuth{
+			Username: username,
+			Password: password,
+		}
+	}
+	if token != "" {
+		return &pfsense_rest_v2.APIKeyAuth{
+			APIToken: token,
+		}
+	}
+	resp.Diagnostics.AddError(title, detail)
+	return nil
+}
+
+func ConfiguredInsecure(config *ScaffoldingProviderModel, resp *provider.ConfigureResponse) bool {
+	const title = "Unknown PFSenseV2 Insecure Flag"
+	const detail = "The provider cannot create the API client as there is an unknown Insecure flag provided. " +
+		"Please check the configuration value or use the PFSENSEV2_INSECURE environment variable."
+
+	if config.Insecure.IsUnknown() {
+		resp.Diagnostics.AddAttributeError(path.Root("insecure"), title, detail)
+	}
+
+	insecure := false
+
+	if len(os.Getenv("PFSENSEV2_INSECURE")) > 0 && strings.ToLower(os.Getenv("PFSENSEV2_INSECURE")) != "false" {
 		insecure = true
 	}
 
-	if url == "" {
-		resp.Diagnostics.AddAttributeError(
-			path.Root("url"),
-			"Missing PFSenseV2 URL",
-			"The provider cannot create the API client as there is no URL provided. "+
-				"Set the URL in the configuration or use the PFSENSEV2_URL environment variable.",
-		)
+	if !config.Insecure.IsNull() {
+		insecure = config.Insecure.ValueBool()
 	}
-	if username == "" {
-		resp.Diagnostics.AddAttributeError(
-			path.Root("api_client_username"),
-			"Missing PFSenseV2 API Client Username",
-			"The provider cannot create the API client as there is no API client username provided. "+
-				"Set the API client username in the configuration or use the PFSENSEV2_API_USERNAME environment variable.",
-		)
+
+	return insecure
+}
+
+func (p *ScaffoldingProvider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
+	var config ScaffoldingProviderModel
+
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
 	}
-	if token == "" {
-		resp.Diagnostics.AddAttributeError(
-			path.Root("api_client_token"),
-			"Missing PFSenseV2 API Client Token",
-			"The provider cannot create the API client as there is no API client token provided. "+
-				"Set the API client token in the configuration or use the PFSENSEV2_API_TOKEN environment variable.",
-		)
-	}
+
+	url := ConfiguredURL(&config, resp)
+	auth := ConfiguredAuth(&config, resp)
+	insecure := ConfiguredInsecure(&config, resp)
 
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
 	// We now have a valid configuration!
-	client, error := pfsense_rest_v2.NewTerraformClient(url, username, token, insecure)
+	client, error := pfsense_rest_v2.NewPFSenseClientV2(url, auth, insecure)
 	if error != nil {
 		resp.Diagnostics.AddError(
 			"Unable to Create PFSenseV2 API Client",
@@ -194,7 +203,7 @@ func (p *ScaffoldingProvider) EphemeralResources(ctx context.Context) []func() e
 
 func (p *ScaffoldingProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
 	return []func() datasource.DataSource{
-		NewExampleDataSource,
+		NewPFSenseDataSource,
 	}
 }
 
