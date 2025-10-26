@@ -5,6 +5,8 @@ import (
 	"encoding/base64"
 	"fmt"
 	"net/http"
+
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 type (
@@ -61,8 +63,14 @@ func NewPFSenseClientV2(url string, auth Authorization, insecure bool) (*PFSense
 	}
 }
 
-func (c *PFSenseClientV2) GetBaseConfig() (*PFSenseBaseConfig, error) {
-	response, err := c.apiClient.GetSystemHostnameEndpointWithResponse(context.Background())
+func (c *PFSenseClientV2) URL() string {
+	return c.url
+}
+
+func (c *PFSenseClientV2) GetBaseConfig(ctx context.Context) (*PFSenseBaseConfig, error) {
+	tflog.Debug(ctx, "Calling GetSystemHostnameEndpointWithResponse")
+	response, err := c.apiClient.GetSystemHostnameEndpointWithResponse(ctx)
+	tflog.Debug(ctx, fmt.Sprintf("GetSystemHostnameEndpointWithResponse response: %v, error %v", response, err))
 	if err != nil {
 		return nil, err
 	}

@@ -30,7 +30,7 @@ type PFSenseDataSource struct {
 
 // PFSenseModel describes the data source data model.
 type PFSenseModel struct {
-	Hostname      types.String         `tfsdk:"id"`
+	Hostname      types.String         `tfsdk:"hostname"`
 	FirewallRules PFSenseFirewallRules `tfsdk:"firewall_rules"`
 }
 
@@ -169,6 +169,7 @@ func (d *PFSenseDataSource) Configure(ctx context.Context, req datasource.Config
 		return
 	}
 
+	tflog.Debug(ctx, "Creating PFSense client")
 	client, ok := req.ProviderData.(*pfsense_rest_v2.PFSenseClientV2)
 
 	if !ok {
@@ -184,6 +185,8 @@ func (d *PFSenseDataSource) Configure(ctx context.Context, req datasource.Config
 }
 
 func (d *PFSenseDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	ctx = tflog.SetField(ctx, "pfsensev2_client_url", d.client.URL())
+	tflog.Debug(ctx, "Reading from PFSense host")
 	var data PFSenseModel
 
 	// Read Terraform configuration data into the model
@@ -200,14 +203,17 @@ func (d *PFSenseDataSource) Read(ctx context.Context, req datasource.ReadRequest
 	//     resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read example, got error: %s", err))
 	//     return
 	// }
-	baseConfig, err := d.client.GetBaseConfig()
+	baseConfig, err := d.client.GetBaseConfig(ctx)
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read base config, got error: %s", err))
+		return
 	}
 	firewallRulesResponse, err := d.client.GetFirewallRules()
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read firewall rules, got error: %s", err))
+		return
 	}
+
 	var firewallRules PFSenseFirewallRules
 	for _, r := range firewallRulesResponse {
 		var ifaces []types.String
@@ -229,6 +235,7 @@ func (d *PFSenseDataSource) Read(ctx context.Context, req datasource.ReadRequest
 		})
 	}
 
+	tflog.Debug(ctx, "YYY, read a data source")
 	// For the purposes of this example code, hardcoding a response value to
 	// save into the Terraform state.
 	data.Hostname = types.StringValue(baseConfig.Hostname)
@@ -236,7 +243,7 @@ func (d *PFSenseDataSource) Read(ctx context.Context, req datasource.ReadRequest
 
 	// Write logs using the tflog package
 	// Documentation: https://terraform.io/plugin/log
-	tflog.Trace(ctx, "read a data source")
+	tflog.Debug(ctx, "read a data source")
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
