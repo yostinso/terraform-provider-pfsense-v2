@@ -88,7 +88,7 @@ func (d *PFSenseDataSource) Schema(ctx context.Context, req datasource.SchemaReq
 								Attributes: map[string]schema.Attribute{
 									"type": schema.StringAttribute{
 										MarkdownDescription: "Rule type",
-										Required:            true,
+										Optional:            true,
 										Validators: []validator.String{stringvalidator.OneOf(
 											string(pfsense_rest_v2.FirewallRuleTypePass),
 											string(pfsense_rest_v2.FirewallRuleTypeBlock),
@@ -98,23 +98,28 @@ func (d *PFSenseDataSource) Schema(ctx context.Context, req datasource.SchemaReq
 									"disabled": schema.BoolAttribute{
 										MarkdownDescription: "Whether the rule is disabled",
 										Optional:            true,
+										Computed:            true,
+										// Default: false
 									},
 
 									"address_family": schema.StringAttribute{
 										MarkdownDescription: "Address family (IPv4/IPv6)",
-										Optional:            true,
+										Required:            true,
 										Validators: []validator.String{stringvalidator.OneOf(
-											string(pfsense_rest_v2.FirewallRuleIpprotocolInet),  // IPv4
-											string(pfsense_rest_v2.FirewallRuleIpprotocolInet6), // IPv6
+											string(pfsense_rest_v2.FirewallRuleIpprotocolInet),   // IPv4
+											string(pfsense_rest_v2.FirewallRuleIpprotocolInet6),  // IPv6
+											string(pfsense_rest_v2.FirewallRuleIpprotocolInet46), // IPv6
 										)},
 									},
 									"log": schema.BoolAttribute{
 										MarkdownDescription: "Whether to log packets matching this rule",
 										Optional:            true,
+										Computed:            true,
+										// Default: false
 									},
 									"description": schema.StringAttribute{
 										MarkdownDescription: "Rule description",
-										Optional:            true,
+										Required:            true,
 									},
 									"protocol": schema.StringAttribute{
 										MarkdownDescription: "Protocol. Supported values: ah, carp, esp, gre, icmp, igmp, ipv6, ospf, pfsync, pim, tcp, tcp/udp, udp.",
@@ -137,7 +142,7 @@ func (d *PFSenseDataSource) Schema(ctx context.Context, req datasource.SchemaReq
 									},
 									"source": schema.StringAttribute{
 										MarkdownDescription: "The source address this rule applies to. Valid value options are: an existing interface, an IP address, a subnet CIDR, an existing alias, `any`, `(self)`, `l2tp`, `pppoe`. The context of this address can be inverted by prefixing the value with `!`. For interface values, the `:ip` modifier can be appended to the value to use the interface's IP address instead of its entire subnet.",
-										Optional:            true,
+										Required:            true,
 									},
 									"source_port": schema.StringAttribute{
 										MarkdownDescription: "The source port this rule applies to. Set to `null` to allow any source port. Valid options are: a TCP/UDP port number, a TCP/UDP port range separated by `:`, an existing port type firewall alias. This field is only available when the following conditions are met: protocol must be one of [ tcp, udp, tcp/udp ].",
@@ -146,7 +151,7 @@ func (d *PFSenseDataSource) Schema(ctx context.Context, req datasource.SchemaReq
 									},
 									"destination": schema.StringAttribute{
 										MarkdownDescription: "The destination address this rule applies to. Valid value options are: an existing interface, an IP address, a subnet CIDR, an existing alias, `any`, `(self)`, `l2tp`, `pppoe`. The context of this address can be inverted by prefixing the value with `!`. For interface values, the `:ip` modifier can be appended to the value to use the interface's IP address instead of its entire subnet.",
-										Optional:            true,
+										Required:            true,
 									},
 									"destination_port": schema.StringAttribute{
 										MarkdownDescription: "The destination port this rule applies to. Set to `null` to allow any destination port. Valid options are: a TCP/UDP port number, a TCP/UDP port range separated by `:`, an existing port type firewall alias. This field is only available when the following conditions are met: protocol must be one of [ tcp, udp, tcp/udp ].",
@@ -208,7 +213,7 @@ func (d *PFSenseDataSource) Read(ctx context.Context, req datasource.ReadRequest
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read base config, got error: %s", err))
 		return
 	}
-	firewallRulesResponse, err := d.client.GetFirewallRules()
+	firewallRulesResponse, err := d.client.GetFirewallRules(ctx)
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read firewall rules, got error: %s", err))
 		return
@@ -221,17 +226,17 @@ func (d *PFSenseDataSource) Read(ctx context.Context, req datasource.ReadRequest
 			ifaces = append(ifaces, types.StringValue(iface))
 		}
 		firewallRules = append(firewallRules, &PFSenseFirewallRule{
-			Type:            types.StringValue(r.Type),
+			Type:            types.StringPointerValue(r.Type),
 			Interfaces:      ifaces,
 			Disabled:        types.BoolValue(r.Disabled),
 			AddressFamily:   types.StringValue(r.AddressFamily),
 			Log:             types.BoolValue(r.Log),
 			Description:     types.StringValue(r.Description),
-			Protocol:        types.StringValue(r.Protocol),
+			Protocol:        types.StringPointerValue(r.Protocol),
 			Source:          types.StringValue(r.Source),
-			SourcePort:      types.StringValue(r.SourcePort),
+			SourcePort:      types.StringPointerValue(r.SourcePort),
 			Destination:     types.StringValue(r.Destination),
-			DestinationPort: types.StringValue(r.DestinationPort),
+			DestinationPort: types.StringPointerValue(r.DestinationPort),
 		})
 	}
 

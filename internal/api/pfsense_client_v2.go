@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"net/http"
+	urlpkg "net/url"
 
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
@@ -34,23 +35,35 @@ type (
 	}
 )
 type PFSenseFirewallRule struct {
-	Type            string
+	Type            *string
 	Interfaces      []string
 	Disabled        bool
 	AddressFamily   string
 	Log             bool
 	Description     string
-	Protocol        string
+	Protocol        *string
 	Source          string
-	SourcePort      string
+	SourcePort      *string
 	Destination     string
-	DestinationPort string
+	DestinationPort *string
 }
 
 func NewPFSenseClientV2(url string, auth Authorization, insecure bool) (*PFSenseClientV2, error) {
+	httpClient := &http.Client{}
+	parsedUrl, err := urlpkg.Parse(url)
+	if err != nil {
+		return nil, err
+	}
+	if insecure && parsedUrl.Scheme == "https" {
+		transport := http.DefaultTransport.(*http.Transport).Clone()
+		transport.TLSClientConfig.InsecureSkipVerify = true
+		httpClient.Transport = transport
+	}
+
 	apiClient, err := NewClientWithResponses(
 		url,
 		auth.ClientOption(),
+		WithHTTPClient(httpClient),
 		WithContentTypeJSON,
 	)
 	if err != nil {
@@ -68,9 +81,8 @@ func (c *PFSenseClientV2) URL() string {
 }
 
 func (c *PFSenseClientV2) GetBaseConfig(ctx context.Context) (*PFSenseBaseConfig, error) {
-	tflog.Debug(ctx, "Calling GetSystemHostnameEndpointWithResponse")
 	response, err := c.apiClient.GetSystemHostnameEndpointWithResponse(ctx)
-	tflog.Debug(ctx, fmt.Sprintf("GetSystemHostnameEndpointWithResponse response: %v, error %v", response, err))
+	tflog.Debug(ctx, "GetSystemHostnameEndpointWithResponse"+FormatResponse(ctx, response.Body, response.HTTPResponse, err))
 	if err != nil {
 		return nil, err
 	}
@@ -83,10 +95,10 @@ func (c *PFSenseClientV2) GetBaseConfig(ctx context.Context) (*PFSenseBaseConfig
 	}, nil
 }
 
-func (c *PFSenseClientV2) GetFirewallRules() ([]*PFSenseFirewallRule, error) {
+func (c *PFSenseClientV2) GetFirewallRules(ctx context.Context) ([]*PFSenseFirewallRule, error) {
 	limit := 0
 	response, err := c.apiClient.GetFirewallRulesEndpointWithResponse(
-		context.Background(),
+		ctx,
 		&GetFirewallRulesEndpointParams{
 			Limit: &limit,
 		},
@@ -94,6 +106,8 @@ func (c *PFSenseClientV2) GetFirewallRules() ([]*PFSenseFirewallRule, error) {
 	if err != nil {
 		return nil, err
 	}
+	tflog.Debug(ctx, "GetFirewallRulesEndpointWithResponse"+FormatResponse(ctx, response.Body, response.HTTPResponse, err))
+
 	if response.JSON200 == nil {
 		return nil, fmt.Errorf("unexpected response retrieving firewall rules: %v", response)
 	}
@@ -101,18 +115,19 @@ func (c *PFSenseClientV2) GetFirewallRules() ([]*PFSenseFirewallRule, error) {
 
 	var rules = []*PFSenseFirewallRule{}
 	for _, r := range *rulesJSON {
+
 		rules = append(rules, &PFSenseFirewallRule{
-			Type:            string(*r.Type),
+			Type:            (*string)(r.Type),
 			Interfaces:      *r.Interface,
 			Disabled:        *r.Disabled,
 			AddressFamily:   string(*r.Ipprotocol),
 			Log:             *r.Log,
-			Description:     *r.Descr,
-			Protocol:        string(*r.Protocol),
+			Description:     string(*r.Descr),
+			Protocol:        (*string)(r.Protocol),
 			Source:          *r.Source,
-			SourcePort:      *r.SourcePort,
+			SourcePort:      r.SourcePort,
 			Destination:     *r.Destination,
-			DestinationPort: *r.DestinationPort,
+			DestinationPort: r.DestinationPort,
 		})
 	}
 
@@ -156,4 +171,19 @@ func RemoveHeader(client *Client, header string) *Client {
 		return nil
 	})
 	return client
+}
+
+type ResponseWithBodyAndStatus struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+func FormatResponse(ctx context.Context, body []byte, httpResponse *http.Response, err error) string {
+	if err != nil {
+		return fmt.Sprintf("Error: %v", err)
+	}
+	if body == nil {
+		return "nil response"
+	}
+	return fmt.Sprintf("Status: %s, Body: %s", httpResponse.Status, string(body))
 }
