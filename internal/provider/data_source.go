@@ -3,7 +3,6 @@ package provider
 import (
 	"context"
 	"fmt"
-	"slices"
 
 	pfsense_rest_v2 "terraform-provider-pfsense-v2/internal/api"
 
@@ -50,16 +49,6 @@ type PFSenseFirewallRule struct {
 	DestinationPort types.String   `tfsdk:"destination_port"`
 }
 
-func (rules PFSenseFirewallRules) WANRules() []PFSenseFirewallRule {
-	var wanRules []PFSenseFirewallRule
-	for _, rule := range rules {
-		if slices.Contains(rule.Interfaces, types.StringValue("wan")) {
-			wanRules = append(wanRules, *rule)
-		}
-	}
-	return wanRules
-}
-
 func (d *PFSenseDataSource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_configs"
 }
@@ -80,86 +69,77 @@ func (d *PFSenseDataSource) Schema(ctx context.Context, req datasource.SchemaReq
 				Optional:            true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
-						"wan_rules": schema.ListNestedAttribute{
-							MarkdownDescription: "WAN firewall rules",
-							Computed:            true,
+						"type": schema.StringAttribute{
+							MarkdownDescription: "Rule type",
 							Optional:            true,
-							NestedObject: schema.NestedAttributeObject{
-								Attributes: map[string]schema.Attribute{
-									"type": schema.StringAttribute{
-										MarkdownDescription: "Rule type",
-										Optional:            true,
-										Validators: []validator.String{stringvalidator.OneOf(
-											string(pfsense_rest_v2.FirewallRuleTypePass),
-											string(pfsense_rest_v2.FirewallRuleTypeBlock),
-											string(pfsense_rest_v2.FirewallRuleTypeReject),
-										)},
-									},
-									"disabled": schema.BoolAttribute{
-										MarkdownDescription: "Whether the rule is disabled",
-										Optional:            true,
-										Computed:            true,
-										// Default: false
-									},
+							Validators: []validator.String{stringvalidator.OneOf(
+								string(pfsense_rest_v2.FirewallRuleTypePass),
+								string(pfsense_rest_v2.FirewallRuleTypeBlock),
+								string(pfsense_rest_v2.FirewallRuleTypeReject),
+							)},
+						},
+						"disabled": schema.BoolAttribute{
+							MarkdownDescription: "Whether the rule is disabled",
+							Optional:            true,
+							Computed:            true,
+							// Default: false
+						},
 
-									"address_family": schema.StringAttribute{
-										MarkdownDescription: "Address family (IPv4/IPv6)",
-										Required:            true,
-										Validators: []validator.String{stringvalidator.OneOf(
-											string(pfsense_rest_v2.FirewallRuleIpprotocolInet),   // IPv4
-											string(pfsense_rest_v2.FirewallRuleIpprotocolInet6),  // IPv6
-											string(pfsense_rest_v2.FirewallRuleIpprotocolInet46), // IPv6
-										)},
-									},
-									"log": schema.BoolAttribute{
-										MarkdownDescription: "Whether to log packets matching this rule",
-										Optional:            true,
-										Computed:            true,
-										// Default: false
-									},
-									"description": schema.StringAttribute{
-										MarkdownDescription: "Rule description",
-										Required:            true,
-									},
-									"protocol": schema.StringAttribute{
-										MarkdownDescription: "Protocol. Supported values: ah, carp, esp, gre, icmp, igmp, ipv6, ospf, pfsync, pim, tcp, tcp/udp, udp.",
-										Optional:            true,
-										Validators: []validator.String{stringvalidator.OneOf(
-											string(pfsense_rest_v2.FirewallRuleProtocolAh),
-											string(pfsense_rest_v2.FirewallRuleProtocolCarp),
-											string(pfsense_rest_v2.FirewallRuleProtocolEsp),
-											string(pfsense_rest_v2.FirewallRuleProtocolGre),
-											string(pfsense_rest_v2.FirewallRuleProtocolIcmp),
-											string(pfsense_rest_v2.FirewallRuleProtocolIgmp),
-											string(pfsense_rest_v2.FirewallRuleProtocolIpv6),
-											string(pfsense_rest_v2.FirewallRuleProtocolOspf),
-											string(pfsense_rest_v2.FirewallRuleProtocolPfsync),
-											string(pfsense_rest_v2.FirewallRuleProtocolPim),
-											string(pfsense_rest_v2.FirewallRuleProtocolTcp),
-											string(pfsense_rest_v2.FirewallRuleProtocolTcpudp),
-											string(pfsense_rest_v2.FirewallRuleProtocolUdp),
-										)},
-									},
-									"source": schema.StringAttribute{
-										MarkdownDescription: "The source address this rule applies to. Valid value options are: an existing interface, an IP address, a subnet CIDR, an existing alias, `any`, `(self)`, `l2tp`, `pppoe`. The context of this address can be inverted by prefixing the value with `!`. For interface values, the `:ip` modifier can be appended to the value to use the interface's IP address instead of its entire subnet.",
-										Required:            true,
-									},
-									"source_port": schema.StringAttribute{
-										MarkdownDescription: "The source port this rule applies to. Set to `null` to allow any source port. Valid options are: a TCP/UDP port number, a TCP/UDP port range separated by `:`, an existing port type firewall alias. This field is only available when the following conditions are met: protocol must be one of [ tcp, udp, tcp/udp ].",
-										Optional:            true,
-										Validators:          []validator.String{PortRangeOrNullValidator{}},
-									},
-									"destination": schema.StringAttribute{
-										MarkdownDescription: "The destination address this rule applies to. Valid value options are: an existing interface, an IP address, a subnet CIDR, an existing alias, `any`, `(self)`, `l2tp`, `pppoe`. The context of this address can be inverted by prefixing the value with `!`. For interface values, the `:ip` modifier can be appended to the value to use the interface's IP address instead of its entire subnet.",
-										Required:            true,
-									},
-									"destination_port": schema.StringAttribute{
-										MarkdownDescription: "The destination port this rule applies to. Set to `null` to allow any destination port. Valid options are: a TCP/UDP port number, a TCP/UDP port range separated by `:`, an existing port type firewall alias. This field is only available when the following conditions are met: protocol must be one of [ tcp, udp, tcp/udp ].",
-										Optional:            true,
-										Validators:          []validator.String{PortRangeOrNullValidator{}},
-									},
-								},
-							},
+						"address_family": schema.StringAttribute{
+							MarkdownDescription: "Address family (IPv4/IPv6)",
+							Required:            true,
+							Validators: []validator.String{stringvalidator.OneOf(
+								string(pfsense_rest_v2.FirewallRuleIpprotocolInet),   // IPv4
+								string(pfsense_rest_v2.FirewallRuleIpprotocolInet6),  // IPv6
+								string(pfsense_rest_v2.FirewallRuleIpprotocolInet46), // IPv6
+							)},
+						},
+						"log": schema.BoolAttribute{
+							MarkdownDescription: "Whether to log packets matching this rule",
+							Optional:            true,
+							Computed:            true,
+							// Default: false
+						},
+						"description": schema.StringAttribute{
+							MarkdownDescription: "Rule description",
+							Required:            true,
+						},
+						"protocol": schema.StringAttribute{
+							MarkdownDescription: "Protocol. Supported values: ah, carp, esp, gre, icmp, igmp, ipv6, ospf, pfsync, pim, tcp, tcp/udp, udp.",
+							Optional:            true,
+							Validators: []validator.String{stringvalidator.OneOf(
+								string(pfsense_rest_v2.FirewallRuleProtocolAh),
+								string(pfsense_rest_v2.FirewallRuleProtocolCarp),
+								string(pfsense_rest_v2.FirewallRuleProtocolEsp),
+								string(pfsense_rest_v2.FirewallRuleProtocolGre),
+								string(pfsense_rest_v2.FirewallRuleProtocolIcmp),
+								string(pfsense_rest_v2.FirewallRuleProtocolIgmp),
+								string(pfsense_rest_v2.FirewallRuleProtocolIpv6),
+								string(pfsense_rest_v2.FirewallRuleProtocolOspf),
+								string(pfsense_rest_v2.FirewallRuleProtocolPfsync),
+								string(pfsense_rest_v2.FirewallRuleProtocolPim),
+								string(pfsense_rest_v2.FirewallRuleProtocolTcp),
+								string(pfsense_rest_v2.FirewallRuleProtocolTcpudp),
+								string(pfsense_rest_v2.FirewallRuleProtocolUdp),
+							)},
+						},
+						"source": schema.StringAttribute{
+							MarkdownDescription: "The source address this rule applies to. Valid value options are: an existing interface, an IP address, a subnet CIDR, an existing alias, `any`, `(self)`, `l2tp`, `pppoe`. The context of this address can be inverted by prefixing the value with `!`. For interface values, the `:ip` modifier can be appended to the value to use the interface's IP address instead of its entire subnet.",
+							Required:            true,
+						},
+						"source_port": schema.StringAttribute{
+							MarkdownDescription: "The source port this rule applies to. Set to `null` to allow any source port. Valid options are: a TCP/UDP port number, a TCP/UDP port range separated by `:`, an existing port type firewall alias. This field is only available when the following conditions are met: protocol must be one of [ tcp, udp, tcp/udp ].",
+							Optional:            true,
+							Validators:          []validator.String{PortRangeOrNullValidator{}},
+						},
+						"destination": schema.StringAttribute{
+							MarkdownDescription: "The destination address this rule applies to. Valid value options are: an existing interface, an IP address, a subnet CIDR, an existing alias, `any`, `(self)`, `l2tp`, `pppoe`. The context of this address can be inverted by prefixing the value with `!`. For interface values, the `:ip` modifier can be appended to the value to use the interface's IP address instead of its entire subnet.",
+							Required:            true,
+						},
+						"destination_port": schema.StringAttribute{
+							MarkdownDescription: "The destination port this rule applies to. Set to `null` to allow any destination port. Valid options are: a TCP/UDP port number, a TCP/UDP port range separated by `:`, an existing port type firewall alias. This field is only available when the following conditions are met: protocol must be one of [ tcp, udp, tcp/udp ].",
+							Optional:            true,
+							Validators:          []validator.String{PortRangeOrNullValidator{}},
 						},
 					},
 				},

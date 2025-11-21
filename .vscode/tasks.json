@@ -1,0 +1,69 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "dlv - launch delve and capture TF_REATTACH_PROVIDERS",
+            "type": "shell",
+            "command": "cd ${workspaceFolder} && echo started && stdbuf -oL dlv debug --headless --listen=127.0.0.1:45851 --api-version=2 -- -debug 2>&1 | stdbuf -oL tee /dev/tty | stdbuf -oL grep -e '^\\s*TF_REATTACH_PROVIDERS=' | stdbuf -oL sed -e 's/^\\s*/export /' > ${workspaceFolder}/.vscode/.tf_provider_debug.env",
+            "problemMatcher": [{
+                "owner": "go",
+                "pattern": [{
+                    "kind": "file",
+                    "regexp": ".*",
+                    "file": 1,
+                    "message": 1
+                }],
+                "background": {
+                    "activeOnStart": false,
+                    "beginsPattern": { "regexp": "^started$" },
+                    "endsPattern": { "regexp": "^API server listening.*" },
+                }
+            }],
+            "options": {
+                "cwd": "/home/vscode"
+            },
+            "isBackground": true,
+            "presentation": {
+                "echo": true,
+                "reveal": "silent",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": true
+            },
+            "dependsOn": [ "dlv - kill dlv" ]
+        },
+        {
+            "label": "dlv - start provider",
+            "type": "shell",
+            "command": ". ${workspaceFolder}/.vscode/.tf_provider_debug.env && terraform -chdir=${workspaceFolder}/examples/pfsensev2 plan",
+            "problemMatcher": [],
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "dedicated",
+                "showReuseMessage": false,
+                "clear": true
+            }
+        },
+        {
+            "label": "dlv - kill dlv",
+            "type": "shell",
+            "command": "pkill dlv || echo 'dlv not running'",
+            "options": {
+                "cwd": "/home/vscode"
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "silent",
+                "focus": false,
+                "panel": "shared",
+                "close": true,
+            },
+            "problemMatcher": []
+        }
+    ]
+}
