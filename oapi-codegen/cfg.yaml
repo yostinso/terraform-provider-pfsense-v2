@@ -46,6 +46,8 @@ output-options:
     - postServicesBINDAccessListEndpoint
     - patchServicesBINDAccessListEndpoint
     - deleteServicesBINDAccessListEndpoint
+    - getServicesBINDAccessListEntriesEndpoint
+    - deleteServicesBINDAccessListEntriesEndpoint
     - getServicesBINDAccessListEntryEndpoint
     - postServicesBINDAccessListEntryEndpoint
     - patchServicesBINDAccessListEntryEndpoint
@@ -99,6 +101,8 @@ output-options:
     - postServicesDNSForwarderHostOverrideAliasEndpoint
     - patchServicesDNSForwarderHostOverrideAliasEndpoint
     - deleteServicesDNSForwarderHostOverrideAliasEndpoint
+    - getServicesDNSForwarderHostOverrideAliasesEndpoint
+    - deleteServicesDNSForwarderHostOverrideAliasesEndpoint
     - getServicesDNSForwarderHostOverrideEndpoint
     - postServicesDNSForwarderHostOverrideEndpoint
     - patchServicesDNSForwarderHostOverrideEndpoint
@@ -114,6 +118,8 @@ output-options:
     - postServicesDNSResolverAccessListNetworkEndpoint
     - patchServicesDNSResolverAccessListNetworkEndpoint
     - deleteServicesDNSResolverAccessListNetworkEndpoint
+    - getServicesDNSResolverAccessListNetworksEndpoint
+    - deleteServicesDNSResolverAccessListNetworksEndpoint
     - getServicesDNSResolverAccessListsEndpoint
     - putServicesDNSResolverAccessListsEndpoint
     - deleteServicesDNSResolverAccessListsEndpoint
@@ -130,6 +136,8 @@ output-options:
     - postServicesDNSResolverHostOverrideAliasEndpoint
     - patchServicesDNSResolverHostOverrideAliasEndpoint
     - deleteServicesDNSResolverHostOverrideAliasEndpoint
+    - getServicesDNSResolverHostOverrideAliasesEndpoint
+    - deleteServicesDNSResolverHostOverrideAliasesEndpoint
     - getServicesDNSResolverHostOverrideEndpoint
     - postServicesDNSResolverHostOverrideEndpoint
     - patchServicesDNSResolverHostOverrideEndpoint
@@ -166,10 +174,14 @@ output-options:
     - postServicesHAProxyBackendACLEndpoint
     - patchServicesHAProxyBackendACLEndpoint
     - deleteServicesHAProxyBackendACLEndpoint
+    - getServicesHAProxyBackendACLsEndpoint
+    - deleteServicesHAProxyBackendACLsEndpoint
     - getServicesHAProxyBackendActionEndpoint
     - postServicesHAProxyBackendActionEndpoint
     - patchServicesHAProxyBackendActionEndpoint
     - deleteServicesHAProxyBackendActionEndpoint
+    - getServicesHAProxyBackendActionsEndpoint
+    - deleteServicesHAProxyBackendActionsEndpoint
     - getServicesHAProxyBackendEndpoint
     - postServicesHAProxyBackendEndpoint
     - patchServicesHAProxyBackendEndpoint
@@ -178,10 +190,14 @@ output-options:
     - postServicesHAProxyBackendErrorFileEndpoint
     - patchServicesHAProxyBackendErrorFileEndpoint
     - deleteServicesHAProxyBackendErrorFileEndpoint
+    - getServicesHAProxyBackendErrorFilesEndpoint
+    - deleteServicesHAProxyBackendErrorFilesEndpoint
     - getServicesHAProxyBackendServerEndpoint
     - postServicesHAProxyBackendServerEndpoint
     - patchServicesHAProxyBackendServerEndpoint
     - deleteServicesHAProxyBackendServerEndpoint
+    - getServicesHAProxyBackendServersEndpoint
+    - deleteServicesHAProxyBackendServersEndpoint
     - getServicesHAProxyBackendsEndpoint
     - putServicesHAProxyBackendsEndpoint
     - deleteServicesHAProxyBackendsEndpoint
@@ -196,18 +212,26 @@ output-options:
     - postServicesHAProxyFrontendACLEndpoint
     - patchServicesHAProxyFrontendACLEndpoint
     - deleteServicesHAProxyFrontendACLEndpoint
+    - getServicesHAProxyFrontendACLsEndpoint
+    - deleteServicesHAProxyFrontendACLsEndpoint
     - getServicesHAProxyFrontendActionEndpoint
     - postServicesHAProxyFrontendActionEndpoint
     - patchServicesHAProxyFrontendActionEndpoint
     - deleteServicesHAProxyFrontendActionEndpoint
+    - getServicesHAProxyFrontendActionsEndpoint
+    - deleteServicesHAProxyFrontendActionsEndpoint
     - getServicesHAProxyFrontendAddressEndpoint
     - postServicesHAProxyFrontendAddressEndpoint
     - patchServicesHAProxyFrontendAddressEndpoint
     - deleteServicesHAProxyFrontendAddressEndpoint
+    - getServicesHAProxyFrontendAddressesEndpoint
+    - deleteServicesHAProxyFrontendAddressesEndpoint
     - getServicesHAProxyFrontendCertificateEndpoint
     - postServicesHAProxyFrontendCertificateEndpoint
     - patchServicesHAProxyFrontendCertificateEndpoint
     - deleteServicesHAProxyFrontendCertificateEndpoint
+    - getServicesHAProxyFrontendCertificatesEndpoint
+    - deleteServicesHAProxyFrontendCertificatesEndpoint
     - getServicesHAProxyFrontendEndpoint
     - postServicesHAProxyFrontendEndpoint
     - patchServicesHAProxyFrontendEndpoint
@@ -216,6 +240,8 @@ output-options:
     - postServicesHAProxyFrontendErrorFileEndpoint
     - patchServicesHAProxyFrontendErrorFileEndpoint
     - deleteServicesHAProxyFrontendErrorFileEndpoint
+    - getServicesHAProxyFrontendErrorFilesEndpoint
+    - deleteServicesHAProxyFrontendErrorFilesEndpoint
     - getServicesHAProxyFrontendsEndpoint
     - putServicesHAProxyFrontendsEndpoint
     - deleteServicesHAProxyFrontendsEndpoint
@@ -223,10 +249,14 @@ output-options:
     - postServicesHAProxySettingsDNSResolverEndpoint
     - patchServicesHAProxySettingsDNSResolverEndpoint
     - deleteServicesHAProxySettingsDNSResolverEndpoint
+    - getServicesHAProxySettingsDNSResolversEndpoint
+    - deleteServicesHAProxySettingsDNSResolversEndpoint
     - getServicesHAProxySettingsEmailMailerEndpoint
     - postServicesHAProxySettingsEmailMailerEndpoint
     - patchServicesHAProxySettingsEmailMailerEndpoint
     - deleteServicesHAProxySettingsEmailMailerEndpoint
+    - getServicesHAProxySettingsEmailMailersEndpoint
+    - deleteServicesHAProxySettingsEmailMailersEndpoint
     - getServicesHAProxySettingsEndpoint
     - patchServicesHAProxySettingsEndpoint
     - getServicesNTPSettingsEndpoint
