@@ -78,6 +78,11 @@ func (d *PFSenseDataSource) Schema(ctx context.Context, req datasource.SchemaReq
 								string(pfsense_rest_v2.FirewallRuleTypeReject),
 							)},
 						},
+						"interfaces": schema.ListAttribute{
+							MarkdownDescription: "Interfaces this rule applies to",
+							ElementType:         types.StringType,
+							Computed:            true,
+						},
 						"disabled": schema.BoolAttribute{
 							MarkdownDescription: "Whether the rule is disabled",
 							Optional:            true,

@@ -7,7 +7,7 @@ terraform {
   }
 }
 provider "pfsense-v2" {
-  url                 = "https://192.168.2.1"
+  url                 = "https://ng4100"
   insecure            = true
   api_client_token    = "c1436e040ccc971c179ef343d58577f3"
 }

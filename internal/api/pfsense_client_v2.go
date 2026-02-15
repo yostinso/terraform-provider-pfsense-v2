@@ -82,10 +82,15 @@ func (c *PFSenseClientV2) URL() string {
 
 func (c *PFSenseClientV2) GetBaseConfig(ctx context.Context) (*PFSenseBaseConfig, error) {
 	response, err := c.apiClient.GetSystemHostnameEndpointWithResponse(ctx)
-	tflog.Debug(ctx, "GetSystemHostnameEndpointWithResponse"+FormatResponse(ctx, response.Body, response.HTTPResponse, err))
 	if err != nil {
+		tflog.Debug(ctx, "GetSystemHostnameEndpointWithResponse"+FormatResponse(ctx, nil, nil, err))
 		return nil, err
 	}
+	if response == nil {
+		tflog.Debug(ctx, "GetSystemHostnameEndpointWithResponse nil response")
+		return nil, fmt.Errorf("unexpected nil response retrieving base config")
+	}
+	tflog.Debug(ctx, "GetSystemHostnameEndpointWithResponse"+FormatResponse(ctx, response.Body, response.HTTPResponse, err))
 	if response.JSON200 == nil {
 		return nil, fmt.Errorf("unexpected response retrieving base config: %v", response)
 	}
@@ -104,7 +109,13 @@ func (c *PFSenseClientV2) GetFirewallRules(ctx context.Context) ([]*PFSenseFirew
 		},
 	)
 	if err != nil {
+		tflog.Debug(ctx, "GetFirewallRulesEndpointWithResponse"+FormatResponse(ctx, nil, nil, err))
 		return nil, err
+	}
+
+	if response == nil {
+		tflog.Debug(ctx, "GetFirewallRulesEndpointWithResponse nil response")
+		return nil, fmt.Errorf("unexpected nil response retrieving firewall rules")
 	}
 	tflog.Debug(ctx, "GetFirewallRulesEndpointWithResponse"+FormatResponse(ctx, response.Body, response.HTTPResponse, err))
 
