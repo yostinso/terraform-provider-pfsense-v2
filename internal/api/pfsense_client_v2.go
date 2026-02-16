@@ -25,7 +25,12 @@ type (
 
 type PFSenseClientV2 struct {
 	url       string
-	apiClient *ClientWithResponses
+	apiClient pfsenseAPIClient
+}
+
+type pfsenseAPIClient interface {
+	GetSystemHostnameEndpointWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetSystemHostnameEndpointResponse, error)
+	GetFirewallRulesEndpointWithResponse(ctx context.Context, params *GetFirewallRulesEndpointParams, reqEditors ...RequestEditorFn) (*GetFirewallRulesEndpointResponse, error)
 }
 
 type (

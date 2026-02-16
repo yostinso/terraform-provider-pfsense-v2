@@ -24,7 +24,10 @@
 	// "forwardPorts": [],
 
 	// Use 'postCreateCommand' to run commands after the container is created.
-	"postCreateCommand": "ln -s /workspaces/terraform-provider-pfsense-v2/.devcontainer/.terraformrc ~/.terraformrc"
+	"postCreateCommand": "ln -s /workspaces/terraform-provider-pfsense-v2/.devcontainer/.terraformrc ~/.terraformrc",
+	"remoteEnv": {
+		"LOCAL_WORKSPACE_FOLDER": "${localWorkspaceFolder}"
+	}
 
 	// Configure tool-specific properties.
 	// "customizations": {},

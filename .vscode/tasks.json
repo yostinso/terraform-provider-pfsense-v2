@@ -64,6 +64,50 @@
                 "close": true,
             },
             "problemMatcher": []
+        },
+        {
+            "label": "coverage - generate filtered profile",
+            "type": "shell",
+            "command": "cd ${workspaceFolder} && go test ./... -coverprofile=coverage.out && { head -n 1 coverage.out; tail -n +2 coverage.out | grep -v 'internal/api/pfsense_rest_v2.gen.go'; } > coverage.filtered.out && go tool cover -func=coverage.filtered.out | grep '^total:'",
+            "problemMatcher": [],
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": true
+            }
+        },
+        {
+            "label": "coverage - generate html report",
+            "type": "shell",
+            "command": "cd ${workspaceFolder} && go tool cover -html=coverage.filtered.out -o coverage.filtered.html && echo coverage.filtered.html",
+            "dependsOn": ["coverage - generate filtered profile"],
+            "problemMatcher": [],
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            }
+        },
+        {
+            "label": "coverage - open html report",
+            "type": "shell",
+            "command": "if [[ ! -z \"${env:LOCAL_WORKSPACE_FOLDER}\" ]]; then cov_path=\"${env:LOCAL_WORKSPACE_FOLDER}/coverage.filtered.html\"; else cov_path=\"${workspaceFolder}/coverage.filtered.html\"; fi && echo \"file://${cov_path}\" && \"$BROWSER\" \"file://${cov_path}\"",
+            "dependsOn": ["coverage - generate html report"],
+            "problemMatcher": [],
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            }
         }
     ]
 }

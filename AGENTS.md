@@ -68,3 +68,44 @@ user that these need to be run in order via the task launcher.
 * Changes should be incremental commits. Refer to `TODO.md` if the user is not providing the next task.
 * Ask the developer if they want you to update `TODO.md` with new tasks when discussing future functionality.
 * Tests should exist and should be run for every change.
+
+## Endpoint testing pattern (required for new endpoints)
+When adding or changing endpoint wrappers in `internal/api/pfsense_client_v2.go`, include both unit and functional-style test coverage.
+
+1. **Table-driven unit tests (required)**
+    - Add a `*_unit_test.go` file for the endpoint area (split by concern where practical).
+    - Use one table-driven test (`testCases := []struct{...}` + `t.Run(...)`) as the primary structure.
+    - Include at least these cases:
+       - successful mapping from API response model to provider wrapper model
+       - API client method returns error
+       - nil response object from API client (`nil, nil`)
+       - unexpected/non-200 parsed response (e.g. `JSON200 == nil` path)
+    - Assert field mapping explicitly for meaningful fields (not just length/count). For rule-like objects, validate fields such as action/type, protocol, interfaces, source/destination, ports, and flags.
+    - Reuse a fake client seam (mocked `pfsenseAPIClient`) and assert expected request params where applicable (example: `limit=0` behavior).
+
+2. **Functional `httptest` pair (required)**
+    - Add a `*_http_test.go` file with exactly two focused tests per endpoint wrapper:
+       - `..._HTTPTest_HappyPath`
+       - `..._HTTPTest_UnhappyPath`
+    - Happy path test requirements:
+       - use `httptest.NewServer`
+       - assert HTTP method and endpoint path (and key query params if expected)
+       - return representative `200` JSON payload
+       - assert mapped result values
+    - Unhappy path test requirements:
+       - return representative non-200 JSON payload (commonly `400`)
+       - assert returned error contains the expected wrapper-level message
+
+3. **Execution/validation**
+    - Run targeted tests during implementation, then run the full test suite before finishing.
+    - Keep tests deterministic and local-only (no real pfSense instance/network dependency).
+
+### Example implementations
+Use these as reference patterns when adding tests for new endpoint wrappers:
+
+- Unit tests (table-driven):
+   - `internal/api/pfsense_client_v2_get_base_config_unit_test.go`
+   - `internal/api/pfsense_client_v2_get_firewall_rules_unit_test.go`
+- Functional `httptest` pair (happy/unhappy):
+   - `internal/api/pfsense_client_v2_get_base_config_http_test.go`
+   - `internal/api/pfsense_client_v2_get_firewall_rules_http_test.go`
