@@ -8,25 +8,6 @@ import (
 	"testing"
 )
 
-type fakePFSenseAPIClient struct {
-	getSystemHostnameEndpointWithResponse func(ctx context.Context, reqEditors ...RequestEditorFn) (*GetSystemHostnameEndpointResponse, error)
-	getFirewallRulesEndpointWithResponse  func(ctx context.Context, params *GetFirewallRulesEndpointParams, reqEditors ...RequestEditorFn) (*GetFirewallRulesEndpointResponse, error)
-}
-
-func (f *fakePFSenseAPIClient) GetSystemHostnameEndpointWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetSystemHostnameEndpointResponse, error) {
-	if f.getSystemHostnameEndpointWithResponse == nil {
-		return nil, nil
-	}
-	return f.getSystemHostnameEndpointWithResponse(ctx, reqEditors...)
-}
-
-func (f *fakePFSenseAPIClient) GetFirewallRulesEndpointWithResponse(ctx context.Context, params *GetFirewallRulesEndpointParams, reqEditors ...RequestEditorFn) (*GetFirewallRulesEndpointResponse, error) {
-	if f.getFirewallRulesEndpointWithResponse == nil {
-		return nil, nil
-	}
-	return f.getFirewallRulesEndpointWithResponse(ctx, params, reqEditors...)
-}
-
 func TestGetBaseConfig_NoPanicOnClientError(t *testing.T) {
 	client, err := NewPFSenseClientV2("http://127.0.0.1:1", &APIKeyAuth{APIToken: "test"}, false)
 	if err != nil {

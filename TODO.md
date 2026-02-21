@@ -11,5 +11,5 @@
 
 * Attempt to create a new firewall rule and then drop it
     * Validate full lifecycle via Terraform (`apply` to create, then remove from config and `apply` to delete)
-    * [x] Add Terraform apply tests for firewall rule state reads/updates (rule present on first apply, absent on second apply)
+    * Add Terraform apply tests for firewall rule state reads/updates (rule present on first apply, absent on second apply)
 
